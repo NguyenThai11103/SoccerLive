@@ -1,0 +1,1 @@
+﻿// TODO: RabbitMQ publisher
