@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { login } from "../services/authService";
 
 function Login() {
   const navigate = useNavigate();
@@ -8,6 +9,8 @@ function Login() {
     password: "",
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -17,6 +20,9 @@ function Login() {
     // Clear error when user starts typing
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: "" });
+    }
+    if (apiError) {
+      setApiError("");
     }
   };
 
@@ -35,15 +41,34 @@ function Login() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-    } else {
-      // Mock login - in real app, call API here
-      console.log("Login:", formData);
+      return;
+    }
+
+    setLoading(true);
+    setApiError("");
+
+    try {
+      // Call API login
+      const response = await login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      console.log("Login success:", response.data.user);
+
+      // Redirect to home page
       navigate("/");
+    } catch (error) {
+      console.error("Login error:", error);
+      setApiError(error.message || "Đăng nhập thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,6 +88,28 @@ function Login() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="card space-y-6">
+          {/* API Error Message */}
+          {apiError && (
+            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 animate-fade-in">
+              <div className="flex items-center space-x-2">
+                <svg
+                  className="w-5 h-5 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-sm text-red-400">{apiError}</p>
+              </div>
+            </div>
+          )}
+
           <div>
             <label
               htmlFor="email"
@@ -77,9 +124,10 @@ function Login() {
               autoComplete="email"
               value={formData.email}
               onChange={handleChange}
+              disabled={loading}
               className={`input ${
                 errors.email ? "border-red-500 focus:ring-red-500" : ""
-              }`}
+              } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
               placeholder="your@email.com"
             />
             {errors.email && (
@@ -101,9 +149,10 @@ function Login() {
               autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
+              disabled={loading}
               className={`input ${
                 errors.password ? "border-red-500 focus:ring-red-500" : ""
-              }`}
+              } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
               placeholder="••••••••"
             />
             {errors.password && (
@@ -117,6 +166,7 @@ function Login() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                disabled={loading}
                 className="h-4 w-4 rounded border-dark-700 bg-dark-800 text-primary-600 focus:ring-primary-600"
               />
               <label
@@ -137,8 +187,38 @@ function Login() {
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary w-full">
-            Đăng nhập
+          <button
+            type="submit"
+            className="btn btn-primary w-full flex items-center justify-center space-x-2"
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span>Đang đăng nhập...</span>
+              </>
+            ) : (
+              <span>Đăng nhập</span>
+            )}
           </button>
 
           <div className="text-center text-sm text-dark-400">

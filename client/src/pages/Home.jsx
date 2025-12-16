@@ -1,81 +1,39 @@
-﻿import MatchCard from "../components/MatchCard";
+﻿import { useState, useEffect } from "react";
+import MatchCard from "../components/MatchCard";
+import { getMatches, getLiveMatches } from "../services/matchService";
 
 function Home() {
-  // Mock data for demonstration
-  const liveMatches = [
-    {
-      id: 1,
-      homeTeam: "Manchester United",
-      awayTeam: "Liverpool",
-      homeScore: 2,
-      awayScore: 1,
-      status: "LIVE",
-      startTime: new Date().toISOString(),
-      league: "Premier League",
-      viewers: 45230,
-      homeTeamLogo: "🔴",
-      awayTeamLogo: "🔴",
-    },
-    {
-      id: 2,
-      homeTeam: "Real Madrid",
-      awayTeam: "Barcelona",
-      homeScore: 1,
-      awayScore: 1,
-      status: "LIVE",
-      startTime: new Date().toISOString(),
-      league: "La Liga",
-      viewers: 78450,
-      homeTeamLogo: "⚪",
-      awayTeamLogo: "🔵",
-    },
-    {
-      id: 3,
-      homeTeam: "Bayern Munich",
-      awayTeam: "Dortmund",
-      homeScore: 3,
-      awayScore: 0,
-      status: "LIVE",
-      startTime: new Date().toISOString(),
-      league: "Bundesliga",
-      viewers: 32100,
-      homeTeamLogo: "🔴",
-      awayTeamLogo: "🟡",
-    },
-  ];
+  const [liveMatches, setLiveMatches] = useState([]);
+  const [upcomingMatches, setUpcomingMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const upcomingMatches = [
-    {
-      id: 4,
-      homeTeam: "Chelsea",
-      awayTeam: "Arsenal",
-      status: "UPCOMING",
-      startTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-      league: "Premier League",
-      homeTeamLogo: "🔵",
-      awayTeamLogo: "🔴",
-    },
-    {
-      id: 5,
-      homeTeam: "PSG",
-      awayTeam: "Marseille",
-      status: "UPCOMING",
-      startTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
-      league: "Ligue 1",
-      homeTeamLogo: "🔵",
-      awayTeamLogo: "⚪",
-    },
-    {
-      id: 6,
-      homeTeam: "Juventus",
-      awayTeam: "AC Milan",
-      status: "UPCOMING",
-      startTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-      league: "Serie A",
-      homeTeamLogo: "⚫",
-      awayTeamLogo: "🔴",
-    },
-  ];
+  useEffect(() => {
+    loadMatches();
+  }, []);
+
+  const loadMatches = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // Fetch live matches
+      const live = await getLiveMatches();
+      setLiveMatches(live);
+
+      // Fetch upcoming matches
+      const upcoming = await getMatches({
+        status: "SCHEDULED",
+        limit: 20,
+      });
+      setUpcomingMatches(upcoming.matches || []);
+    } catch (err) {
+      console.error("Error loading matches:", err);
+      setError("Không thể tải danh sách trận đấu. Vui lòng thử lại sau.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -114,11 +72,31 @@ function Home() {
             <span className="text-dark-400">({liveMatches.length} trận)</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {liveMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary-500"></div>
+            </div>
+          ) : error ? (
+            <div className="card bg-red-500/10 border border-red-500/50 p-6 text-center">
+              <p className="text-red-400">{error}</p>
+              <button onClick={loadMatches} className="btn btn-primary mt-4">
+                Thử lại
+              </button>
+            </div>
+          ) : liveMatches.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {liveMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          ) : (
+            <div className="card text-center py-12">
+              <div className="text-6xl mb-4">⚽</div>
+              <p className="text-dark-300 text-lg">
+                Hiện không có trận đấu nào đang diễn ra
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -142,13 +120,25 @@ function Home() {
             <h2 className="text-3xl font-display font-bold text-dark-50">
               Sắp diễn ra
             </h2>
+            <span className="text-dark-400">
+              ({upcomingMatches.length} trận)
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingMatches.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </div>
+          {!loading && upcomingMatches.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcomingMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          ) : !loading && upcomingMatches.length === 0 ? (
+            <div className="card text-center py-12">
+              <div className="text-6xl mb-4">📅</div>
+              <p className="text-dark-300 text-lg">
+                Chưa có lịch thi đấu sắp tới
+              </p>
+            </div>
+          ) : null}
         </div>
       </section>
 
