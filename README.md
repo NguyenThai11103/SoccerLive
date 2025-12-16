@@ -3,11 +3,360 @@
 ![SoccerLive](https://img.shields.io/badge/Status-MVP-green)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-brightgreen)
 ![React](https://img.shields.io/badge/React-18-blue)
-![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
 
 ## 📖 Tổng quan
 
-SoccerLive là nền tảng streaming bóng đá trực tiếp với kiến trúc microservices, hỗ trợ:
+SoccerLive là nền tảng streaming bóng đá trực tiếp với kiến trúc monolithic, hỗ trợ:
+
+- ⚽ Livestream trận đấu
+- 💬 Chat realtime
+- 📊 Cập nhật tỷ số & sự kiện trực tiếp
+- 🔔 Thông báo realtime
+- 📈 Analytics người xem
+
+## 🏗️ Kiến trúc
+
+### Monolithic Backend
+
+- **Backend API** (Port 5000) - Express.js + MySQL + Sequelize
+- **Frontend** (Port 5173) - React + Vite + TailwindCSS
+- **Real-time** - Socket.IO
+
+### Tech Stack
+
+- **Backend**: Node.js + Express.js + Socket.IO
+- **Frontend**: React + Vite + TailwindCSS
+- **Database**: MySQL + Sequelize ORM
+- **Cache**: Redis
+- **Authentication**: JWT
+- **File Upload**: Multer
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- MySQL 8.0+
+- Redis (optional)
+- OBS Studio (for streaming)
+
+### Installation
+
+#### 1. Backend Setup
+
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd SoccerLive/backend
+
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env
+# Edit .env with your database credentials
+
+# Create MySQL database
+mysql -u root -p
+CREATE DATABASE soccerlive;
+exit;
+
+# Start backend server
+npm start
+```
+
+Backend sẽ chạy tại: `http://localhost:5000`
+
+#### 2. Frontend Setup
+
+```bash
+# Open new terminal
+cd SoccerLive/client
+
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env
+
+# Start frontend
+npm run dev
+```
+
+Frontend sẽ chạy tại: `http://localhost:5173`
+
+## 📁 Project Structure
+
+```
+SoccerLive/
+├── backend/           # Backend monolithic
+│   ├── src/
+│   │   ├── config/    # Database & Redis config
+│   │   ├── models/    # Sequelize models
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   ├── middlewares/
+│   │   └── services/
+│   ├── uploads/       # File uploads
+│   ├── seeders/       # Database seeders
+│   └── package.json
+├── client/            # React frontend
+├── db_connection.sql  # Database schema
+└── .env.example
+```
+
+## 📡 API Documentation
+
+### Authentication
+
+```bash
+POST /api/auth/register    - Đăng ký tài khoản
+POST /api/auth/login       - Đăng nhập
+GET  /api/auth/me          - Lấy thông tin user (Protected)
+```
+
+### Matches
+
+```bash
+GET    /api/matches          - Danh sách trận đấu
+GET    /api/matches/live     - Trận đấu đang live
+GET    /api/matches/:id      - Chi tiết trận đấu
+POST   /api/matches          - Tạo trận đấu (Admin)
+PATCH  /api/matches/:id/status - Cập nhật trạng thái (Admin)
+PATCH  /api/matches/:id/score  - Cập nhật tỷ số (Admin)
+```
+
+## 🔐 Default Credentials
+
+### Admin Account (Tạo thủ công qua API)
+
+```bash
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "email": "admin@soccerlive.com",
+    "password": "admin123",
+    "fullName": "Administrator"
+  }'
+```
+
+## 🧪 Testing
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Register user
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "email": "test@test.com",
+    "password": "123456"
+  }'
+
+# Login
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@test.com",
+    "password": "123456"
+  }'
+```
+
+## 📊 Database Schema
+
+### Users
+
+- id, username, email, password, fullName, avatar, role, isActive, lastLogin
+
+### Matches
+
+- id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, streamKey, streamUrl, thumbnail, league, venue, viewerCount
+
+### MatchEvents
+
+- id, matchId, type, team, player, minute, description, data
+
+### ChatMessages
+
+- id, matchId, userId, message, isDeleted
+
+### ViewerStats
+
+- id, matchId, userId, sessionId, joinTime, leaveTime, duration, ipAddress, userAgent
+
+## 🚀 VPS Deployment
+
+### 1. Cài đặt môi trường
+
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Install MySQL
+sudo apt install -y mysql-server
+sudo mysql_secure_installation
+
+# Install Redis (optional)
+sudo apt install -y redis-server
+
+# Install PM2
+sudo npm install -g pm2
+```
+
+### 2. Deploy Backend
+
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd SoccerLive/backend
+
+# Install dependencies
+npm install --production
+
+# Setup environment
+cp .env.example .env
+nano .env  # Edit with production values
+
+# Create database
+mysql -u root -p
+CREATE DATABASE soccerlive;
+exit;
+
+# Start with PM2
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+```
+
+### 3. Deploy Frontend
+
+```bash
+cd ../client
+
+# Install dependencies
+npm install
+
+# Build for production
+npm run build
+
+# Serve with nginx or PM2
+```
+
+### 4. Setup Nginx (Reverse Proxy)
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    # Frontend
+    location / {
+        root /path/to/SoccerLive/client/dist;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Backend API
+    location /api {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Socket.IO
+    location /socket.io {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+    }
+}
+```
+
+## 🛠️ Development
+
+### Backend Development
+
+```bash
+cd backend
+npm install
+npm start  # Auto-restart with nodemon
+```
+
+### Frontend Development
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+### Database Seeding
+
+```bash
+cd backend
+npm run db:seed        # Run all seeders
+npm run db:seed:undo   # Undo all seeders
+```
+
+## 📝 Environment Variables
+
+### Backend (.env)
+
+```env
+PORT=5000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=soccerlive
+REDIS_HOST=127.0.0.1
+JWT_SECRET=your_secret_key
+CLIENT_URL=http://localhost:5173
+```
+
+### Frontend (.env)
+
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_WS_URL=ws://localhost:5000
+```
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## 📄 License
+
+MIT License
+
+## 👥 Authors
+
+- Your Name - Initial work
+
+## 🙏 Acknowledgments
+
+- Express.js
+- Sequelize
+- Socket.IO
+- React + Vite
+
+---
+
+**Made with ⚽ for football fans**
 
 - ⚽ Livestream trận đấu
 - 💬 Chat realtime
